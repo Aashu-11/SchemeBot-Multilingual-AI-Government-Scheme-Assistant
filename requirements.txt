@@ -9,3 +9,4 @@ gtts>=2.2.0
 SpeechRecognition>=3.8.0
 googletrans==4.0.0-rc1
 indic-transliteration>=2.0.0
+pyaudio
