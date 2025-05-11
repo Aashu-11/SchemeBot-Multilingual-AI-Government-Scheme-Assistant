@@ -100,12 +100,17 @@ def detect_language(text):
     return 'en'
 
 # Enhanced Translator class using Google Translate API
+# Replace the SchemeTranslator class with this improved implementation
 class SchemeTranslator:
     def __init__(self):
-        self.translator = Translator()
+        # Use deep_translator instead of googletrans for more reliable translations
+        # No need to initialize a translator object here
         self.translation_cache = {}  # Cache to improve performance
         
     def translate(self, text, target_lang):
+        """Translate text to the target language"""
+        from deep_translator import GoogleTranslator
+        
         if not text or target_lang == 'en':
             return text
             
@@ -115,28 +120,36 @@ class SchemeTranslator:
             return self.translation_cache[cache_key]
             
         try:
-            # Split long text into chunks (Google Translate has character limits)
+            # Handle long text by chunking (Google has a character limit)
             if len(text) > 5000:
                 chunks = [text[i:i+5000] for i in range(0, len(text), 5000)]
                 translated_chunks = []
                 for chunk in chunks:
-                    result = self.translator.translate(chunk, dest=target_lang)
-                    translated_chunks.append(result.text)
+                    # Use GoogleTranslator from deep_translator
+                    translator = GoogleTranslator(source='auto', target=target_lang)
+                    result = translator.translate(chunk)
+                    translated_chunks.append(result)
                 translated_text = ' '.join(translated_chunks)
             else:
-                result = self.translator.translate(text, dest=target_lang)
-                translated_text = result.text
+                # For shorter text, translate in one go
+                translator = GoogleTranslator(source='auto', target=target_lang)
+                translated_text = translator.translate(text)
                 
             # Cache the result
             self.translation_cache[cache_key] = translated_text
             return translated_text
         except Exception as e:
             print(f"Translation error: {e}")
+            # Fallback to original text
             return text
             
     def translate_to_english(self, text, source_lang=None):
+        """Translate text to English"""
+        from deep_translator import GoogleTranslator
+        
         if not text:
             return text
+            
         if source_lang == 'en' or detect_language(text) == 'en':
             return text
             
@@ -151,19 +164,145 @@ class SchemeTranslator:
                 chunks = [text[i:i+5000] for i in range(0, len(text), 5000)]
                 translated_chunks = []
                 for chunk in chunks:
-                    result = self.translator.translate(chunk, dest='en')
-                    translated_chunks.append(result.text)
+                    # Use GoogleTranslator from deep_translator
+                    translator = GoogleTranslator(source='auto', target='en')
+                    result = translator.translate(chunk)
+                    translated_chunks.append(result)
                 translated_text = ' '.join(translated_chunks)
             else:
-                result = self.translator.translate(text, dest='en')
-                translated_text = result.text
+                # For shorter text, translate in one go
+                translator = GoogleTranslator(source='auto', target='en')
+                translated_text = translator.translate(text)
                 
             # Cache the result
             self.translation_cache[cache_key] = translated_text
             return translated_text
         except Exception as e:
             print(f"Translation error: {e}")
+            # Fallback to original text
             return text
+
+# Replace the text_to_speech method in the SpeechProcessor class
+def text_to_speech(self, text, lang='en'):
+    """Convert text to speech in the specified language using pyttsx3 with fallback
+    to gTTS for better multilingual support"""
+    import pyttsx3
+    import tempfile
+    
+    try:
+        # Clean text for TTS - remove markdown and other formatting
+        clean_text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove bold markdown
+        clean_text = re.sub(r'\n\n', ' ', clean_text)  # Replace double newlines with space
+        clean_text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', clean_text)  # Remove markdown links
+        
+        # For shorter text segments, try using pyttsx3 first (works offline)
+        if len(clean_text) < 3000 and lang == 'en':
+            try:
+                # Use pyttsx3 for English (offline and better performance)
+                engine = pyttsx3.init()
+                # Create a temporary file to save the audio
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_mp3:
+                    temp_filename = temp_mp3.name
+                
+                # Convert text to speech and save to file
+                engine.save_to_file(clean_text, temp_filename)
+                engine.runAndWait()
+                
+                # Read the audio file
+                with open(temp_filename, 'rb') as f:
+                    audio_bytes = f.read()
+                
+                # Clean up
+                os.unlink(temp_filename)
+                
+                # Create HTML audio element
+                audio_b64 = base64.b64encode(audio_bytes).decode()
+                audio_html = f"""
+                    <audio controls autoplay>
+                        <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                        Your browser does not support the audio element.
+                    </audio>
+                """
+                return audio_html
+            except Exception as e:
+                print(f"pyttsx3 error: {e}")
+                # Fall back to gTTS if pyttsx3 fails
+                pass
+                
+        # For non-English or longer text, use gTTS (requires internet)
+        # Split text if it's too long for TTS
+        MAX_TTS_LENGTH = 3000
+        text_parts = []
+        
+        if len(clean_text) > MAX_TTS_LENGTH:
+            # Split by sentences or paragraphs
+            chunks = re.split(r'(?<=[.!?])\s+', clean_text)
+            current_chunk = ""
+            
+            for chunk in chunks:
+                if len(current_chunk) + len(chunk) < MAX_TTS_LENGTH:
+                    current_chunk += chunk + " "
+                else:
+                    if current_chunk:
+                        text_parts.append(current_chunk.strip())
+                    current_chunk = chunk + " "
+            
+            if current_chunk:
+                text_parts.append(current_chunk.strip())
+        else:
+            text_parts = [clean_text]
+            
+        # Map language codes for gTTS if needed
+        lang_map = {
+            'hinglish': 'hi',  # Use Hindi for Hinglish
+            'mr': 'hi',  # Use Hindi for Marathi
+            'pa': 'pa',  # Punjabi
+            'gu': 'gu',  # Gujarati
+            'bn': 'bn',  # Bengali
+            'ta': 'ta',  # Tamil
+            'te': 'te',  # Telugu
+            'kn': 'kn',  # Kannada
+            'ml': 'ml'   # Malayalam
+        }
+        
+        if lang in lang_map:
+            lang = lang_map[lang]
+            
+        # Process each part
+        audio_bytes_list = []
+        for part in text_parts:
+            # Generate speech
+            try:
+                # Use gTTS for better multilingual support
+                from gtts import gTTS
+                tts = gTTS(text=part, lang=lang, slow=False)
+                
+                # Save to BytesIO object
+                part_audio_bytes = io.BytesIO()
+                tts.write_to_fp(part_audio_bytes)
+                part_audio_bytes.seek(0)
+                audio_bytes_list.append(part_audio_bytes.read())
+            except Exception as e:
+                print(f"gTTS error for part: {e}")
+                continue
+        
+        # Combine all audio parts
+        combined_audio = b''.join(audio_bytes_list)
+            
+        # Create HTML audio element
+        audio_b64 = base64.b64encode(combined_audio).decode()
+        audio_html = f"""
+            <audio controls autoplay>
+                <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                Your browser does not support the audio element.
+            </audio>
+        """
+        return audio_html
+        
+    except Exception as e:
+        print(f"Text-to-speech error: {e}")
+        # Fallback to basic message if all TTS methods fail
+        return f"<p>Text-to-speech error: {e}</p>"
 
 # Enhanced Hinglish processor
 class HinglishProcessor:
@@ -602,27 +741,30 @@ class SpeechProcessor:
             return f"An error occurred: {str(e)}"
     
     def text_to_speech(self, text, lang='en'):
+        """Convert text to speech in the specified language with enhanced support for Indian languages"""
         try:
-            # Convert language code for gTTS if needed
-            if lang == 'hinglish':
-                lang = 'hi'  # Use Hindi for Hinglish
-                
-            # Map language codes that gTTS doesn't support directly
-            lang_map = {
-                'mr': 'hi',  # Use Hindi for Marathi
-                'pa': 'hi',  # Use Hindi for Punjabi
-                'gu': 'gu'   # Gujarati is supported
-            }
-            
-            if lang in lang_map:
-                lang = lang_map[lang]
-                
             # Clean text for TTS - remove markdown and other formatting
             clean_text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Remove bold markdown
             clean_text = re.sub(r'\n\n', ' ', clean_text)  # Replace double newlines with space
             clean_text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', clean_text)  # Remove markdown links
             
-            # Split text if it's too long for TTS
+            # Proper language code mapping for gTTS
+            lang_map = {
+                'hinglish': 'hi',  # Use Hindi for Hinglish
+                'mr': 'hi',        # Use Hindi for Marathi
+                'pa': 'pa',        # Punjabi
+                'gu': 'gu',        # Gujarati
+                'bn': 'bn',        # Bengali
+                'ta': 'ta',        # Tamil
+                'te': 'te',        # Telugu
+                'kn': 'kn',        # Kannada
+                'ml': 'ml'         # Malayalam
+            }
+            
+            # Convert language code if needed
+            tts_lang = lang_map.get(lang, lang)
+            
+            # Split text if it's too long for TTS to handle
             MAX_TTS_LENGTH = 3000
             text_parts = []
             
@@ -643,32 +785,75 @@ class SpeechProcessor:
                     text_parts.append(current_chunk.strip())
             else:
                 text_parts = [clean_text]
-                
+            
             # Process each part
             audio_bytes_list = []
-            for part in text_parts:
-                # Generate speech
-                tts = gTTS(text=part, lang=lang, slow=False)
-                
-                # Save to BytesIO object
-                part_audio_bytes = io.BytesIO()
-                tts.write_to_fp(part_audio_bytes)
-                part_audio_bytes.seek(0)
-                audio_bytes_list.append(part_audio_bytes.read())
             
-            # Combine all audio parts
-            combined_audio = b''.join(audio_bytes_list)
+            # First attempt: Use gTTS for all languages (most reliable for multiple languages)
+            try:
+                for part in text_parts:
+                    tts = gTTS(text=part, lang=tts_lang, slow=False)
+                    
+                    # Save to BytesIO object
+                    part_audio_bytes = io.BytesIO()
+                    tts.write_to_fp(part_audio_bytes)
+                    part_audio_bytes.seek(0)
+                    audio_bytes_list.append(part_audio_bytes.read())
                 
-            # Create HTML audio element
-            audio_b64 = base64.b64encode(combined_audio).decode()
-            audio_html = f"""
-                <audio controls autoplay>
-                    <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
-                    Your browser does not support the audio element.
-                </audio>
-            """
-            return audio_html
-            
+                # If we got here, gTTS worked successfully
+                combined_audio = b''.join(audio_bytes_list)
+                
+                # Create HTML audio element
+                audio_b64 = base64.b64encode(combined_audio).decode()
+                audio_html = f"""
+                    <audio controls autoplay>
+                        <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                        Your browser does not support the audio element.
+                    </audio>
+                """
+                return audio_html
+                
+            except Exception as e:
+                # If gTTS fails, try pyttsx3 as fallback for English only
+                print(f"gTTS error: {e}, trying pyttsx3 fallback for English...")
+                if tts_lang == 'en':
+                    try:
+                        import pyttsx3
+                        engine = pyttsx3.init()
+                        
+                        # Create a temporary file
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_mp3:
+                            temp_filename = temp_mp3.name
+                        
+                        # Convert to speech and save
+                        engine.save_to_file(clean_text, temp_filename)
+                        engine.runAndWait()
+                        
+                        # Read the audio file
+                        with open(temp_filename, 'rb') as f:
+                            audio_bytes = f.read()
+                        
+                        # Clean up
+                        os.unlink(temp_filename)
+                        
+                        # Create HTML audio element
+                        audio_b64 = base64.b64encode(audio_bytes).decode()
+                        audio_html = f"""
+                            <audio controls autoplay>
+                                <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                                Your browser does not support the audio element.
+                            </audio>
+                        """
+                        return audio_html
+                        
+                    except Exception as e2:
+                        print(f"pyttsx3 fallback error: {e2}")
+                        # Both TTS methods failed
+                        return f"<p>Unable to generate speech in {SUPPORTED_LANGUAGES.get(lang, lang)}. Please check your internet connection.</p>"
+                else:
+                    # For non-English when gTTS fails
+                    return f"<p>Unable to generate speech in {SUPPORTED_LANGUAGES.get(lang, lang)}. Please check your internet connection.</p>"
+                    
         except Exception as e:
             print(f"Text-to-speech error: {e}")
             return f"<p>Text-to-speech error: {e}</p>"
