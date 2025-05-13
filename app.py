@@ -29,6 +29,8 @@ try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
     nltk.download('punkt')
+    nltk.download('wordnet')
+    nltk.download('omw-1.4')
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
