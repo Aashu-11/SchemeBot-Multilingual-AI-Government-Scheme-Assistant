@@ -25,15 +25,25 @@ import time
 import json
 
 # Download NLTK resources
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords')
+# Download NLTK resources
+import nltk
 
+# Make sure downloads happen correctly by using a more robust approach
+nltk.download('punkt', quiet=True)
+nltk.download('stopwords', quiet=True)
+
+# Verify that the resources are available
+try:
+    from nltk.tokenize import word_tokenize
+    from nltk.corpus import stopwords
+    # Test the functionality to ensure it works
+    test_tokens = word_tokenize("This is a test sentence.")
+    stop_words = set(stopwords.words('english'))
+except Exception as e:
+    print(f"Error initializing NLTK resources: {e}")
+    # Alternative implementation that doesn't rely on NLTK
+    def word_tokenize(text):
+        return text.split()
 # Constants
 SUPPORTED_LANGUAGES = {
     'en': 'English',
@@ -306,32 +316,58 @@ def text_to_speech(self, text, lang='en'):
 
 # Enhanced Hinglish processor
 class HinglishProcessor:
-    def __init__(self):
-        self.stop_words_en = set(stopwords.words('english'))
-        self.stop_words_hi = set(['का', 'के', 'में', 'है', 'हैं', 'से', 'और', 'पर', 'को', 'की', 'कि'])
-        
-        # Load Hindi-English dictionary (simplified example - in production use a real dictionary)
-        self.hindi_english_dict = {
-            'kya': 'क्या',
-            'hai': 'है',
-            'nahi': 'नहीं',
-            'aap': 'आप',
-            'main': 'मैं',
-            'hum': 'हम',
-            'yeh': 'यह',
-            'woh': 'वह',
-            'scheme': 'योजना',
-            'sarkari': 'सरकारी',
-            'kaise': 'कैसे',
-            'milega': 'मिलेगा',
-            'chahiye': 'चाहिए',
-            'kahan': 'कहां',
-            'apply': 'आवेदन'
-        }
+    class HinglishProcessor:
+        def __init__(self):
+            try:
+                self.stop_words_en = set(stopwords.words('english'))
+            except:
+                # Fallback if NLTK stopwords aren't available
+                self.stop_words_en = set([
+                    'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 
+                    'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 
+                    'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 
+                    'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 
+                    'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 
+                    'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 
+                    'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 
+                    'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 
+                    'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 
+                    'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 
+                    'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 
+                    'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 
+                    'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 
+                    't', 'can', 'will', 'just', 'don', 'should', 'now'
+                ])
+            
+            self.stop_words_hi = set(['का', 'के', 'में', 'है', 'हैं', 'से', 'और', 'पर', 'को', 'की', 'कि'])
+            
+            # Load Hindi-English dictionary (simplified example - in production use a real dictionary)
+            self.hindi_english_dict = {
+                'kya': 'क्या',
+                'hai': 'है',
+                'nahi': 'नहीं',
+                'aap': 'आप',
+                'main': 'मैं',
+                'hum': 'हम',
+                'yeh': 'यह',
+                'woh': 'वह',
+                'scheme': 'योजना',
+                'sarkari': 'सरकारी',
+                'kaise': 'कैसे',
+                'milega': 'मिलेगा',
+                'chahiye': 'चाहिए',
+                'kahan': 'कहां',
+                'apply': 'आवेदन'
+            }
         
     def process_hinglish(self, text):
         # More sophisticated Hinglish processing
-        words = text.split()
+        try:
+            words = word_tokenize(text)
+        except:
+            # Fall back to simple splitting if NLTK tokenization fails
+            words = text.split()
+        
         processed_words = []
         
         for word in words:
