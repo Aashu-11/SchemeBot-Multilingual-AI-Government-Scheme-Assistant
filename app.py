@@ -28,7 +28,7 @@ import json
 import nltk
 
 # Make sure downloads happen correctly by using a more robust approach
-nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab', quiet=True)
 nltk.download('stopwords', quiet=True)
 
 # Verify that the resources are available
