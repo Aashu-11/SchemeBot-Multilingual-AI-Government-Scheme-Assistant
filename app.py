@@ -23,7 +23,24 @@ from indic_transliteration import sanscript
 from indic_transliteration.sanscript import transliterate
 import time
 import json
+# Add this at the beginning of your script, before any imports
+# This will install the deep_translator library if it's not already installed
+import sys
+import subprocess
+import importlib
 
+def install_package(package):
+    try:
+        # Check if the package is already installed
+        importlib.import_module(package)
+        print(f"{package} is already installed.")
+    except ImportError:
+        print(f"Installing {package}...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        print(f"{package} has been installed.")
+
+# Install required package
+install_package('deep_translator')
 # Download NLTK resources
 import nltk
 
