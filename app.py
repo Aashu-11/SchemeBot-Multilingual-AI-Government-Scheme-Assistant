@@ -44,6 +44,7 @@ except Exception as e:
     # Alternative implementation that doesn't rely on NLTK
     def word_tokenize(text):
         return text.split()
+
 # Constants
 SUPPORTED_LANGUAGES = {
     'en': 'English',
@@ -338,7 +339,7 @@ class HinglishProcessor:
                     'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 
                     't', 'can', 'will', 'just', 'don', 'should', 'now'
                 ])
-            
+                
             self.stop_words_hi = set(['का', 'के', 'में', 'है', 'हैं', 'से', 'और', 'पर', 'को', 'की', 'कि'])
             
             # Load Hindi-English dictionary (simplified example - in production use a real dictionary)
@@ -361,12 +362,14 @@ class HinglishProcessor:
             }
         
     def process_hinglish(self, text):
-        # More sophisticated Hinglish processing
+    # More sophisticated Hinglish processing
         try:
             words = word_tokenize(text)
         except:
             # Fall back to simple splitting if NLTK tokenization fails
             words = text.split()
+    
+        processed_words = []
         
         processed_words = []
         
